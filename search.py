@@ -16,6 +16,7 @@
 In search.py, you will implement generic search algorithms which are called by
 Pacman agents (in searchAgents.py).
 """
+import heapq
 
 import util
 
@@ -91,31 +92,80 @@ def depthFirstSearch(problem):
     # print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
     # print("Start's successors:", problem.getSuccessors(problem.getStartState()))
 
-    open = util.Stack()
+    open = util.Stack()  # store states in stack
+    currPath = util.Stack()  # store path of expanded states
     visited = []
-    open.push((problem.getStartState(), []))  # (state, actions)
+
+    open.push(problem.getStartState())
+    currPath.push([])
     while not open.isEmpty():
-        state, actions = open.pop()
-        # print(state)
+        state = open.pop()
+        path = currPath.pop()
+
         if state not in visited:
             visited.append(state)
 
             if problem.isGoalState(state):
-                return actions
+                return path
 
             for nextState, action, cost in problem.getSuccessors(state):
-                open.push((nextState, actions + [action]))
+                open.push(nextState)
+                currPath.push(path + [action])
 
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    open = util.Queue()
+    currPath = util.Queue()
+    visited = []
+
+    open.push(problem.getStartState())
+    currPath.push([])
+    while not open.isEmpty():
+        state = open.pop()
+        path = currPath.pop()
+
+        if state not in visited:
+            visited.append(state)
+
+            if problem.isGoalState(state):
+                return path
+
+            for nextState, action, cost in problem.getSuccessors(state):
+                open.push(nextState)
+                currPath.push(path + [action])
+
+
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    open = util.PriorityQueue() # key state, priority is cost
+    currPath = dict()  # key is state, value is (path, cost)
+    visited = []
+    open.push(problem.getStartState(), 0)
+    currPath[problem.getStartState()] = ([], 0)
+
+    while not open.isEmpty():
+        state = open.pop()
+        path, cost = currPath[state]
+        if state not in visited:
+            visited.append(state)
+
+            if problem.isGoalState(state):
+                return path
+
+            for nextState, action, nextCost in problem.getSuccessors(state):
+                # relax process in Dijsktra
+                open.update(nextState, cost+nextCost)
+                if nextState not in currPath:
+                    currPath[nextState] = (path + [action], cost + nextCost)
+                else:
+                    oldPath, oldCost = currPath[nextState]
+                    if nextCost + cost < oldCost:
+                        currPath[nextState] = (path + [action], cost + nextCost)
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -127,7 +177,64 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # # the key of pq should be the state node.
+    # def updateByComparingState(pq, item, priority):
+    #     for index, (p, c, i) in enumerate(pq.heap):
+    #         if i[0] == item[0]:  # modification here
+    #             if p <= priority:
+    #                 break
+    #             del pq.heap[index]
+    #             pq.heap.append((priority, c, item))
+    #             heapq.heapify(pq.heap)
+    #             break
+    #     else:
+    #         pq.push(item, priority)
+    #
+    # open = util.PriorityQueue()
+    # visited = []
+    # startState = problem.getStartState()
+    # startHeuristic = heuristic(startState, problem)
+    # open.push((problem.getStartState(), [], 0), startHeuristic)
+    #
+    # while not open.isEmpty():
+    #     state, actions, cost = open.pop()
+    #     if state not in visited:
+    #         visited.append(state)
+    #
+    #         if problem.isGoalState(state):
+    #             return actions
+    #
+    #         for nextState, action, nextCost in problem.getSuccessors(state):
+    #             newCostPlusHeuristic = cost + nextCost + heuristic(nextState, problem)
+    #             updateByComparingState(open, (nextState, actions + [action], cost + nextCost), newCostPlusHeuristic)
+    #
+
+    open = util.PriorityQueue() # key is state, priority is cost+heuristic
+    currPath = dict()  # key is state, value is (path, cost)
+    visited = []
+    startState = problem.getStartState()
+    open.push(startState, heuristic(startState, problem))
+    currPath[startState] = ([], 0)
+
+    while not open.isEmpty():
+        state = open.pop()
+        path, cost = currPath[state]
+        if state not in visited:
+            visited.append(state)
+
+            if problem.isGoalState(state):
+                return path
+
+            for nextState, action, nextCost in problem.getSuccessors(state):
+                # relax process in Dijsktra
+                newCostPlusHeuristic = cost + nextCost + heuristic(nextState, problem)
+                open.update(nextState, newCostPlusHeuristic)
+                if nextState not in currPath:
+                    currPath[nextState] = (path + [action], cost + nextCost)
+                else:
+                    oldPath, oldCost = currPath[nextState]
+                    if nextCost + cost < oldCost:
+                        currPath[nextState] = (path + [action], cost + nextCost)
 
 
 # Abbreviations
